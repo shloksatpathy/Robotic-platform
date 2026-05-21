@@ -1,12 +1,17 @@
 import base64
 import asyncio
+import os
 import time
 import threading
+import platform
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 import cv2
 
 from detector import detect, draw_cached_boxes, device
+
+# Suppress noisy MSMF warnings on Windows (must be set before any VideoCapture)
+os.environ["OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS"] = "0"
 
 app = FastAPI(title="AI Robotic Platform Backend API")
 
@@ -19,6 +24,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def _open_camera(src):
+    """
+    Open a camera with the most stable backend for the current OS.
+    On Windows, DirectShow (CAP_DSHOW) is far more reliable than the
+    default MSMF backend for USB webcams.
+    """
+    if platform.system() == "Windows":
+        cap = cv2.VideoCapture(src, cv2.CAP_DSHOW)
+    else:
+        cap = cv2.VideoCapture(src)
+
+    if cap.isOpened():
+        # Minimize internal buffer to 1 frame — keeps frames fresh instead of queued
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        # Request 640x480 from the driver directly (avoids software resize later)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    return cap
+
 class VideoStream:
     """
     High-performance camera reader running on a dedicated daemon thread.
@@ -26,10 +50,11 @@ class VideoStream:
     """
     def __init__(self, src=0):
         self.src = src
-        self.stream = cv2.VideoCapture(src)
+        self.stream = _open_camera(src)
         self.grabbed, self.frame = self.stream.read()
         self.started = False
         self.read_lock = threading.Lock()
+        self._consecutive_failures = 0
 
     def start(self):
         if self.started:
@@ -43,16 +68,28 @@ class VideoStream:
     def update(self):
         while self.started:
             if not self.stream.isOpened():
-                # Attempt camera re-acquisition periodically
-                self.stream = cv2.VideoCapture(self.src)
-                time.sleep(1.0)
+                # Attempt camera re-acquisition periodically using stable backend
+                print("[WARNING] Camera lost — attempting re-acquisition...")
+                self.stream = _open_camera(self.src)
+                time.sleep(2.0)
                 continue
-                
+
             grabbed, frame = self.stream.read()
+
+            if not grabbed:
+                # Back off exponentially on consecutive failures (caps at 1s)
+                # This prevents flooding the terminal with grab-frame warnings
+                self._consecutive_failures += 1
+                backoff = min(1.0, 0.03 * (2 ** min(self._consecutive_failures, 5)))
+                time.sleep(backoff)
+                continue
+
+            # Reset failure counter on success
+            self._consecutive_failures = 0
+
             with self.read_lock:
                 self.grabbed = grabbed
-                if grabbed:
-                    self.frame = frame
+                self.frame = frame
             # 10ms yield to prevent CPU starvation on this background thread
             time.sleep(0.01)
 
