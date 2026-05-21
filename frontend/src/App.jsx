@@ -117,7 +117,7 @@ function App() {
       <header className="dashboard-header">
         <div className="header-logo">
           <div className="logo-pulse"></div>
-          <h1>AI ROBOTICS PLATFORM</h1>
+          <h1>KRISTELLAR'S DASHBOARD</h1>
         </div>
         <div className="header-status">
           <span className="status-label">SYSTEM STATE:</span>
