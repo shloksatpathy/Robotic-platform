@@ -7,7 +7,90 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"[SYSTEM] Initializing YOLOv8n engine on device: {device.upper()}")
 
 try:
-    model = YOLO("yolov8n.pt")
+    model = YOLO("yolov8s-world.pt")
+
+    model.set_classes([
+    # Human related
+    "person",
+    "hand",
+    "arm",
+    "head",
+    "face",
+
+    # Computers & electronics
+    "laptop",
+    "computer monitor",
+    "keyboard",
+    "mouse",
+    "cell phone",
+    "printer",
+    "scanner",
+    "microphone",
+    "speaker",
+    "headphones",
+    "earphones",
+    "router",
+    "circuit board",
+    "battery",
+    "charger",
+    "charging cable",
+    "usb drive",
+
+    # Furniture
+    "chair",
+    "couch",
+    "desk",
+    "table",
+    "cabinet",
+    "drawer",
+    "bookshelf",
+
+    # Stationery
+    "pen",
+    "pencil",
+    "marker",
+    "notebook",
+    "book",
+    "paper",
+    "document",
+    "folder",
+    "calendar",
+    "sticky note",
+
+    # Personal items
+    "backpack",
+    "handbag",
+    "wallet",
+    "suitcase",
+    "glasses",
+    "watch",
+    "keys",
+    "id card",
+
+    # Desk items
+    "bottle",
+    "cup",
+    "plate",
+    "bowl",
+    "scissors",
+    "tissue box",
+
+    # Office infrastructure
+    "stairs",
+    "fire extinguisher",
+    "clock",
+    "potted plant",
+
+    # Robotics / engineering
+    "toolbox",
+    "screwdriver",
+    "multimeter",
+    "sensor",
+    "motor",
+    "drone",
+    "robot",
+    "camera"
+])
     if model is not None:
         model.to(device)
 except Exception as e:
