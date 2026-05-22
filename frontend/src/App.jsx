@@ -1,10 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
-import VideoFeed from "./components/VideoFeed";
-import StatsPanel from "./components/StatsPanel";
-import DetectionTable from "./components/DetectionTable";
-import EventLog from "./components/EventLog";
-import ObjectChart from "./components/ObjectChart";
+import GroundControlDashboard from "./components/groundcontrol/GroundControlDashboard";
 function App() {
   const [frame, setFrame] = useState(null);
   const [detections, setDetections] = useState([]);
@@ -114,29 +110,7 @@ function App() {
   }, []);
   return (
     <div className="dashboard">
-      <header className="dashboard-header">
-        <div className="header-logo">
-          <div className="logo-pulse"></div>
-          <h1>KRISTELLAR'S DASHBOARD</h1>
-        </div>
-        <div className="header-status">
-          <span className="status-label">SYSTEM STATE:</span>
-          <span className={`status-value ${stats.status.toLowerCase().replace("...", "")}`}>
-            {stats.status.toUpperCase()}
-          </span>
-        </div>
-      </header>
-      <div className="top-section">
-        <VideoFeed frame={frame} status={stats.status} mode={stats.mode} />
-        <StatsPanel stats={stats} />
-      </div>
-      <div className="table-section">
-        <DetectionTable detections={detections} />
-      </div>
-      <div className="bottom-section">
-        <ObjectChart detections={detections} />
-        <EventLog events={events} />
-      </div>
+      <GroundControlDashboard />
     </div>
   );
 }
