@@ -1,16 +1,21 @@
 import React from 'react';
 import './ComponentStyles.css';
 
-function EventLog({ events }) {
+function EventLog({ events = [] }) {
+  const safeEvents = events || [];
   return (
     <div className="event-log">
       <h3>Event Log</h3>
       <ul>
-        {events.map((ev, idx) => (
-          <li key={idx} className={`event-${ev.type.toLowerCase()}`}>
-            [{ev.timestamp}] <strong>{ev.type}:</strong> {ev.message}
-          </li>
-        ))}
+        {safeEvents.length === 0 ? (
+          <li className="event-system">No events recorded.</li>
+        ) : (
+          safeEvents.map((ev, idx) => (
+            <li key={idx} className={`event-${(ev.type || 'system').toLowerCase()}`}>
+              [{ev.timestamp || ''}] <strong>{(ev.type || 'SYSTEM')}:</strong> {ev.message || ''}
+            </li>
+          ))
+        )}
       </ul>
     </div>
   );
