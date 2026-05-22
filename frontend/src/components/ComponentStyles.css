@@ -1,0 +1,133 @@
+/* ComponentStyles.css */
+/* Premium glassmorphism and micro‑animation styles for UI components */
+
+:root {
+  --bg-color: hsl(210, 10%, 10%);
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --accent-h: 210; /* hue for accents */
+  --accent-s: 60%;
+  --accent-l: 55%;
+  --accent: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+  --text-primary: hsl(0, 0%, 90%);
+  --text-secondary: hsl(0, 0%, 70%);
+}
+
+body {
+  background: var(--bg-color);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Glassmorphism container common class */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+}
+
+/* Typography */
+h1, h2, h3 {
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: var(--accent);
+}
+
+h1 { font-size: 2rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.25rem; }
+
+/* Component specific tweaks */
+.video-feed {
+  position: relative;
+  overflow: hidden;
+}
+.video-feed .video-img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.video-feed .overlay {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.stats-panel ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.stats-panel li {
+  margin-bottom: 0.25rem;
+}
+
+.detection-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.detection-table th, .detection-table td {
+  padding: 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--glass-border);
+}
+.detection-table th {
+  background: var(--glass-bg);
+  color: var(--accent);
+}
+
+.object-chart .bar {
+  height: 8px;
+  background: var(--accent);
+  border-radius: 4px;
+  margin-top: 2px;
+}
+
+.event-log ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.event-log li {
+  font-size: 0.85rem;
+  margin-bottom: 0.3rem;
+}
+.event-log .event-error { color: #ff6b6b; }
+.event-log .event-warning { color: #ffa502; }
+.event-log .event-system { color: var(--text-secondary); }
+.event-log .event-detected { color: #1dd1a1; }
+
+/* Micro‑animations */
+@keyframes pulse {
+  0% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0.6; transform: scale(1); }
+}
+.logo-pulse {
+  width: 12px;
+  height: 12px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+  margin-right: 0.5rem;
+}

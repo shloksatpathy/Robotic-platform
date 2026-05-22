@@ -109,9 +109,12 @@ function App() {
     };
   }, []);
   return (
-    <div className="dashboard">
-      <GroundControlDashboard />
-    </div>
+    <GroundControlDashboard
+      frame={frame}
+      stats={stats}
+      detections={detections}
+      events={events}
+    />
   );
 }
 
