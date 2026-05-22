@@ -1,0 +1,90 @@
+/* src/styles/groundcontrol.css */
+/* Glassmorphism dark theme with gradient accents */
+
+:root {
+  --gc-bg: rgba(18, 18, 20, 0.85);
+  --gc-blur: 12px;
+  --gc-radius: 12px;
+  --gc-primary: hsl(210, 60%, 55%);
+  --gc-accent: hsl(280, 55%, 65%);
+  --gc-text: #e0e0e0;
+  --gc-muted: #777;
+  --gc-font: 'Inter', sans-serif;
+}
+
+body {
+  background: linear-gradient(135deg, #0a0a0a, #141414);
+  color: var(--gc-text);
+  font-family: var(--gc-font);
+  margin: 0;
+  padding: 0;
+}
+
+.groundcontrol-dashboard {
+  padding: 20px;
+}
+
+.groundcontrol-dashboard .tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.groundcontrol-dashboard .tabs button {
+  background: var(--gc-bg);
+  border: none;
+  color: var(--gc-muted);
+  padding: 8px 16px;
+  border-radius: var(--gc-radius);
+  backdrop-filter: blur(var(--gc-blur));
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.groundcontrol-dashboard .tabs button:hover {
+  background: var(--gc-primary);
+  color: #fff;
+}
+
+.groundcontrol-dashboard .tabs button.active {
+  background: var(--gc-primary);
+  color: #fff;
+  box-shadow: 0 0 8px var(--gc-primary);
+}
+
+.groundcontrol-dashboard .tab-content {
+  display: grid;
+  gap: 20px;
+  /* each panel gets glass effect */
+}
+
+.groundcontrol-dashboard .panel {
+  background: var(--gc-bg);
+  border-radius: var(--gc-radius);
+  padding: 16px;
+  backdrop-filter: blur(var(--gc-blur));
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.groundcontrol-dashboard .panel h2 {
+  margin-top: 0;
+  color: var(--gc-accent);
+}
+
+/* Scrollbars */
+.groundcontrol-dashboard .tab-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.groundcontrol-dashboard .tab-content::-webkit-scrollbar {
+  width: 8px;
+}
+.groundcontrol-dashboard .tab-content::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.2);
+}
+.groundcontrol-dashboard .tab-content::-webkit-scrollbar-thumb {
+  background: var(--gc-primary);
+  border-radius: 4px;
+}
