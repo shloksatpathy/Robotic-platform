@@ -98,7 +98,7 @@ async def websocket_endpoint(ws: WebSocket):
     # Run YOLO inference on 1 out of every 3 frames (reduces model compute by 66%)
     # For intermediate frames, we draw cached boxes on fresh frames at 30 FPS.
     # Note: If CUDA/GPU is available, you can lower this to 1 (infer every single frame) for maximum accuracy!
-    inference_skip_rate = 1 if device == "cuda" else 3
+    inference_skip_rate = 0.5 if device == "cuda" else 3
     print(f"[SYSTEM] Performance profiling active. Skip rate set to: {inference_skip_rate} (device: {device})")
 
     try:
