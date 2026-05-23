@@ -148,14 +148,13 @@
 }
 
 .theme-pill {
-  padding: 5px 12px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-family: var(--mono);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.8px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -245,16 +244,37 @@
 }
 
 .video-feed-wrapper   { flex: 1; min-height: 0; }
-.video-controls-chart-wrapper {
+
+.lidar-map-wrapper    { flex: 1; min-height: 0; }
+.video-right-bottom-wrapper {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.3fr 1fr;
   gap: 1.25rem;
   height: 180px;
   flex-shrink: 0;
 }
+.detection-table-wrapper {
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.event-log-wrapper    { height: 100%; flex: 1; }
 
-.lidar-map-wrapper    { flex: 1; min-height: 0; }
-.event-log-wrapper    { height: 180px; flex-shrink: 0; }
+/* ── Logs Tab Layout ── */
+.logs-tab-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.object-chart-wrapper {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
 /* ── Video Feed ── */
 .video-feed {
