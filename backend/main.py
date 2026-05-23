@@ -2,11 +2,15 @@ import base64
 import asyncio
 import time
 import threading
+import concurrent.futures
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 import cv2
 
 from detector import detect, draw_cached_boxes, device
+
+# Dedicated thread pool for CPU-heavy encoding work (separate from inference)
+_encode_pool = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="encoder")
 
 app = FastAPI(title="AI Robotic Platform Backend API")
 
@@ -80,6 +84,15 @@ def read_root():
         "model": "YOLOv8n"
     }
 
+def _encode_frame(frame):
+    """
+    CPU-heavy work: JPEG encode + base64. Runs in a thread pool
+    to avoid blocking the asyncio event loop.
+    """
+    _, buffer = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
+    return base64.b64encode(buffer).decode("utf-8")
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
@@ -90,16 +103,34 @@ async def websocket_endpoint(ws: WebSocket):
     if not vs.isOpened():
         print("[WARNING] Threaded VideoStream failed to open Camera 0. Entering recovery loop.")
 
-    # Caching states
+    # ── Shared state between inference producer and frame sender ──
     cached_detections = []
     last_inference_latency = 0.0
+    inference_lock = threading.Lock()
+    inference_running = False
     frame_counter = 0
-    
-    # Run YOLO inference on 1 out of every 3 frames (reduces model compute by 66%)
-    # For intermediate frames, we draw cached boxes on fresh frames at 30 FPS.
-    # Note: If CUDA/GPU is available, you can lower this to 1 (infer every single frame) for maximum accuracy!
-    inference_skip_rate = 0.5 if device == "cuda" else 3
+
+    # Inference frequency: run YOLO every Nth frame.
+    # CUDA: every frame (1). CPU: every 2nd frame to keep loop responsive.
+    inference_skip_rate = 1 if device == "cuda" else 2
     print(f"[SYSTEM] Performance profiling active. Skip rate set to: {inference_skip_rate} (device: {device})")
+
+    def run_inference(frame):
+        """
+        Blocking inference worker – runs in asyncio's default thread pool.
+        Updates shared cached_detections via the closure.
+        """
+        nonlocal cached_detections, last_inference_latency, inference_running
+        try:
+            t0 = time.time()
+            _annotated, detections = detect(frame)
+            latency = round((time.time() - t0) * 1000, 1)
+            with inference_lock:
+                cached_detections = detections
+                last_inference_latency = latency
+        finally:
+            with inference_lock:
+                inference_running = False
 
     try:
         while True:
@@ -116,13 +147,11 @@ async def websocket_endpoint(ws: WebSocket):
                         "model": "YOLOv8n"
                     }
                 })
-                # Check for camera availability every 2 seconds
                 await asyncio.sleep(2.0)
                 continue
 
             success, raw_frame = vs.read()
             if not success or raw_frame is None:
-                # Wait 10ms for grabber thread to write a valid frame
                 await asyncio.sleep(0.01)
                 continue
 
@@ -132,35 +161,48 @@ async def websocket_endpoint(ws: WebSocket):
 
             frame_counter += 1
 
-            # Decide whether to execute active inference or render from cache
-            if frame_counter % inference_skip_rate == 0:
-                start_time = time.time()
-                # Offload heavy model inference to background thread pool (prevents event loop blocking)
-                annotated_frame, detections = await asyncio.to_thread(detect, raw_frame)
-                last_inference_latency = round((time.time() - start_time) * 1000, 1)
-                cached_detections = detections
-            else:
-                # Interpolate cached bounding boxes onto fresh frame (extremely fast, < 0.1ms)
-                annotated_frame = draw_cached_boxes(raw_frame, cached_detections)
+            # ── Launch inference asynchronously (fire-and-forget) ──
+            # Only dispatch if the previous inference has finished, preventing queue pile-up.
+            with inference_lock:
+                should_infer = (
+                    not inference_running
+                    and frame_counter % inference_skip_rate == 0
+                )
+                if should_infer:
+                    inference_running = True
 
-            # JPEG compress (quality 75) to keep base64 packet sizes down by ~60%
-            _, buffer = cv2.imencode(".jpg", annotated_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 75])
-            frame_b64 = base64.b64encode(buffer).decode("utf-8")
+            if should_infer:
+                # Submit to thread pool – does NOT block the event loop
+                asyncio.get_event_loop().run_in_executor(None, run_inference, raw_frame.copy())
+
+            # ── Always draw cached boxes on the current fresh frame ──
+            # This keeps the visual stream smooth at target FPS regardless of inference speed.
+            annotated_frame = draw_cached_boxes(raw_frame, cached_detections)
+
+            # Offload heavy JPEG+base64 encoding to thread pool
+            frame_b64 = await asyncio.get_event_loop().run_in_executor(
+                _encode_pool, _encode_frame, annotated_frame
+            )
+
+            # Read latest stats under lock
+            with inference_lock:
+                det_snapshot = cached_detections
+                lat_snapshot = last_inference_latency
 
             # Send optimized telemetry JSON payload
             await ws.send_json({
                 "frame": frame_b64,
-                "detections": cached_detections,
+                "detections": det_snapshot,
                 "stats": {
-                    "latency": last_inference_latency,
+                    "latency": lat_snapshot,
                     "mode": f"Webcam ({device.upper()})",
                     "model": "YOLOv8n"
                 }
             })
 
-            # Calculate processing duration and sleep precisely to target a steady 30 FPS stream
+            # Target a steady ~30 FPS stream
             loop_elapsed = time.time() - loop_start
-            sleep_needed = max(0.001, 0.033 - loop_elapsed)  # 0.033s = ~30 FPS
+            sleep_needed = max(0.001, 0.033 - loop_elapsed)
             await asyncio.sleep(sleep_needed)
 
     except Exception as e:
