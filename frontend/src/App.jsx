@@ -13,9 +13,21 @@ function App() {
     status: "Connecting..."
   });
   const [events, setEvents] = useState([]);
+  const [theme, setTheme] = useState(() => localStorage.getItem('gcs-theme') || 'dark');
   const wsRef = useRef(null);
   const lastFrameTimeRef = useRef(performance.now());
   const prevClassesRef = useRef(new Set());
+
+  // Persist theme preference and toggle class on <html>
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'light') {
+      root.classList.add('theme-light');
+    } else {
+      root.classList.remove('theme-light');
+    }
+    localStorage.setItem('gcs-theme', theme);
+  }, [theme]);
   // Function to add system logs with precision timestamps
   const addEvent = (type, message) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -114,6 +126,8 @@ function App() {
       stats={stats}
       detections={detections}
       events={events}
+      theme={theme}
+      setTheme={setTheme}
     />
   );
 }
