@@ -28,7 +28,7 @@ function getStatus(value, warnLow, warnHigh, critLow, critHigh) {
 /**
  * LineChart component rendering a clean vector plot with adjacent stats readout.
  */
-const LineChart = ({ data, label, unit, warnLow, warnHigh, critLow, critHigh }) => {
+const LineChart = ({ data, label, unit, warnLow, warnHigh, critLow, critHigh, theme }) => {
   const canvasRef = useRef(null);
   const stats = useStats(data);
   const status = stats ? getStatus(stats.current, warnLow, warnHigh, critLow, critHigh) : 'unknown';
@@ -42,7 +42,8 @@ const LineChart = ({ data, label, unit, warnLow, warnHigh, critLow, critHigh }) 
     ctx.clearRect(0, 0, w, h);
 
     // Grid lines
-    ctx.strokeStyle = 'rgba(59, 130, 246, 0.06)';
+    const isLight = theme === 'light';
+    ctx.strokeStyle = isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(59, 130, 246, 0.06)';
     ctx.lineWidth = 1;
     for (let x = 0; x < w; x += 40) {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
@@ -65,8 +66,8 @@ const LineChart = ({ data, label, unit, warnLow, warnHigh, critLow, critHigh }) 
       // Area fill
       ctx.save();
       const fillGrad = ctx.createLinearGradient(0, 0, 0, h);
-      fillGrad.addColorStop(0, 'rgba(59, 130, 246, 0.12)');
-      fillGrad.addColorStop(1, 'rgba(20, 184, 166, 0)');
+      fillGrad.addColorStop(0, isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(59, 130, 246, 0.12)');
+      fillGrad.addColorStop(1, isLight ? 'rgba(37, 99, 235, 0)' : 'rgba(20, 184, 166, 0)');
       ctx.fillStyle = fillGrad;
       ctx.beginPath();
       ctx.moveTo(points[0].x, h);
@@ -78,7 +79,7 @@ const LineChart = ({ data, label, unit, warnLow, warnHigh, critLow, critHigh }) 
 
       // Stroke line
       ctx.save();
-      ctx.strokeStyle = '#3b82f6';
+      ctx.strokeStyle = isLight ? '#2563eb' : '#3b82f6';
       ctx.lineWidth = 2;
       ctx.lineJoin = 'round';
       ctx.beginPath();
@@ -92,8 +93,8 @@ const LineChart = ({ data, label, unit, warnLow, warnHigh, critLow, critHigh }) 
       // Data dots
       points.forEach(p => {
         ctx.save();
-        ctx.fillStyle = '#f1f5f9';
-        ctx.strokeStyle = '#3b82f6';
+        ctx.fillStyle = isLight ? '#ffffff' : '#f1f5f9';
+        ctx.strokeStyle = isLight ? '#2563eb' : '#3b82f6';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
@@ -103,7 +104,7 @@ const LineChart = ({ data, label, unit, warnLow, warnHigh, critLow, critHigh }) 
       });
 
       // Latest value label
-      ctx.fillStyle = '#94a3b8';
+      ctx.fillStyle = isLight ? '#475569' : '#94a3b8';
       ctx.font = '600 11px "JetBrains Mono", monospace';
       ctx.textAlign = 'right';
       ctx.fillText(data[data.length - 1].toFixed(2), w - 15, 18);
@@ -148,7 +149,7 @@ const LineChart = ({ data, label, unit, warnLow, warnHigh, critLow, critHigh }) 
   );
 };
 
-const TelemetryTab = ({ stats }) => {
+const TelemetryTab = ({ stats, theme }) => {
   // Simulated telemetry queues
   const [tempData, setTempData] = useState([24.2, 24.5, 24.3, 24.7, 24.8, 25.1, 24.9]);
   const [pressData, setPressData] = useState([101.3, 101.4, 101.2, 101.5, 101.6, 101.5, 101.7]);
@@ -176,11 +177,11 @@ const TelemetryTab = ({ stats }) => {
   return (
     <div className="telemetry-tab">
       <div className="charts-grid">
-        <LineChart data={tempData} label="Core Temp" unit="°C" warnHigh={30} critHigh={40} />
-        <LineChart data={pressData} label="Pressure" unit="kPa" warnLow={100} warnHigh={103} critLow={98} critHigh={105} />
-        <LineChart data={xData} label="Orientation X (pitch)" unit="°" />
-        <LineChart data={yData} label="Orientation Y (roll)" unit="°" />
-        <LineChart data={zData} label="Orientation Z (yaw)" unit="°" />
+        <LineChart data={tempData} label="Core Temp" unit="°C" warnHigh={30} critHigh={40} theme={theme} />
+        <LineChart data={pressData} label="Pressure" unit="kPa" warnLow={100} warnHigh={103} critLow={98} critHigh={105} theme={theme} />
+        <LineChart data={xData} label="Orientation X (pitch)" unit="°" theme={theme} />
+        <LineChart data={yData} label="Orientation Y (roll)" unit="°" theme={theme} />
+        <LineChart data={zData} label="Orientation Z (yaw)" unit="°" theme={theme} />
       </div>
     </div>
   );
