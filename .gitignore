@@ -4,4 +4,5 @@
 *.pt
 *.svg
 *.png
+*.npy
 \__pycache__
