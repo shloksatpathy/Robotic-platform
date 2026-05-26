@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
-import GroundControlDashboard from "./components/groundcontrol/GroundControlDashboard";
+import TabDock from "./components/TabDock";
+import LandingPage from "./components/LandingPage";
+import OperationsTab from "./components/OperationsTab";
+import AnalyticsTab from "./components/AnalyticsTab";
+import PathPlanningTab from "./components/PathPlanningTab";
+
 function App() {
   const [frame, setFrame] = useState(null);
   const [detections, setDetections] = useState([]);
@@ -14,6 +19,7 @@ function App() {
   });
   const [events, setEvents] = useState([]);
   const [theme, setTheme] = useState(() => localStorage.getItem('gcs-theme') || 'dark');
+  const [activeTab, setActiveTab] = useState('home');
   const wsRef = useRef(null);
   const lastFrameTimeRef = useRef(performance.now());
   const prevClassesRef = useRef(new Set());
@@ -28,6 +34,7 @@ function App() {
     }
     localStorage.setItem('gcs-theme', theme);
   }, [theme]);
+
   // Function to add system logs with precision timestamps
   const addEvent = (type, message) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -36,6 +43,7 @@ function App() {
       ...prev.slice(0, 49) // Maintain last 50 events to optimize performance
     ]);
   };
+
   useEffect(() => {
     let reconnectTimeout;
     // Log initial platform bootstrap
@@ -120,15 +128,41 @@ function App() {
       clearTimeout(reconnectTimeout);
     };
   }, []);
+
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case 'home':
+        return <LandingPage stats={stats} />;
+      case 'operations':
+        return (
+          <OperationsTab
+            frame={frame}
+            stats={stats}
+            detections={detections}
+            theme={theme}
+          />
+        );
+      case 'analytics':
+        return (
+          <AnalyticsTab
+            stats={stats}
+            events={events}
+            detections={detections}
+            theme={theme}
+          />
+        );
+      case 'pathplanning':
+        return <PathPlanningTab />;
+      default:
+        return <LandingPage stats={stats} />;
+    }
+  };
+
   return (
-    <GroundControlDashboard
-      frame={frame}
-      stats={stats}
-      detections={detections}
-      events={events}
-      theme={theme}
-      setTheme={setTheme}
-    />
+    <>
+      {renderActiveTab()}
+      <TabDock activeTab={activeTab} onTabChange={setActiveTab} />
+    </>
   );
 }
 
