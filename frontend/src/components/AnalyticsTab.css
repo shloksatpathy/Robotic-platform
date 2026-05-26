@@ -1,0 +1,99 @@
+/* AnalyticsTab.css — Graphs, logs, and object tracking layout */
+
+.analytics-tab {
+  height: 100vh;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr auto;
+  gap: 1rem;
+  padding: 1.25rem;
+  padding-left: 80px;
+  box-sizing: border-box;
+  background: var(--bg);
+  overflow: hidden;
+  animation: tabFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Header */
+.analytics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.analytics-header h1 {
+  font-family: var(--sans);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.analytics-header h1::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-teal);
+  animation: pulse-dot 1.5s infinite;
+}
+
+/* Charts area */
+.analytics-charts {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* Bottom row: logs + object chart */
+.analytics-bottom {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 1rem;
+  min-height: 220px;
+  max-height: 280px;
+}
+
+.analytics-log-wrapper {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.analytics-log-wrapper .event-log {
+  height: 100%;
+}
+
+.analytics-chart-wrapper {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.analytics-chart-wrapper .object-chart {
+  height: 100%;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .analytics-tab {
+    height: auto;
+    overflow-y: auto;
+    padding-left: 1.25rem;
+    padding-bottom: 80px;
+  }
+
+  .analytics-bottom {
+    grid-template-columns: 1fr;
+    max-height: none;
+  }
+
+  .analytics-log-wrapper,
+  .analytics-chart-wrapper {
+    min-height: 200px;
+  }
+}
