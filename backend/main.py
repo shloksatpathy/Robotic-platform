@@ -144,7 +144,7 @@ async def websocket_endpoint(ws: WebSocket):
                     "stats": {
                         "latency": 0,
                         "mode": "Offline",
-                        "model": "YOLOv8n"
+                        "model": "YOLOv8"
                     }
                 })
                 await asyncio.sleep(2.0)
