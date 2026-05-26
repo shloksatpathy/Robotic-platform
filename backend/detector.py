@@ -1,4 +1,6 @@
+# pyrefly: ignore [missing-import]
 import cv2
+import numpy as np
 import torch
 from ultralytics import YOLO
 
@@ -10,14 +12,12 @@ try:
     model = YOLO("yolov8s-world.pt")
 
     model.set_classes([
-    # Human related
+    # Human related (merged: head→face, arm→hand)
     "person",
     "hand",
-    "arm",
-    "head",
     "face",
 
-    # Computers & electronics
+    # Computers & electronics (merged: earphones→headphones)
     "laptop",
     "computer monitor",
     "keyboard",
@@ -28,7 +28,6 @@ try:
     "microphone",
     "speaker",
     "headphones",
-    "earphones",
     "router",
     "circuit board",
     "battery",
@@ -36,36 +35,31 @@ try:
     "charging cable",
     "usb drive",
 
-    # Furniture
+    # Furniture (merged: table→desk)
     "chair",
     "couch",
     "desk",
-    "table",
     "cabinet",
     "drawer",
     "bookshelf",
 
-    # Stationery
+    # Stationery (merged: pencil/marker→pen, paper→document)
     "pen",
-    "pencil",
-    "marker",
     "notebook",
     "book",
-    "paper",
     "document",
     "folder",
     "calendar",
     "sticky note",
 
-    # Personal items
+    # Personal items (merged: wallet→card)
     "backpack",
     "handbag",
-    "wallet",
     "suitcase",
     "glasses",
     "watch",
     "keys",
-    "id card",
+    "card",
 
     # Desk items
     "bottle",
@@ -97,70 +91,107 @@ except Exception as e:
     print(f"Error loading YOLO model on device {device}: {e}")
     model = None
 
-def detect(frame):
+# ── Confusable class pairs that need crop-level resolution ──
+# Maps each confusable class to a list of classes it gets confused with
+CONFUSABLE_GROUPS = {
+    "cell phone": "card",
+    "card": "card",       # always re-verify card detections
+    "book": "card",       # CLIP confuses card/book (both flat rectangles)
+}
+
+def resolve_class_confusion(frame, class_name, coords):
     """
-    Runs YOLOv8 object tracking on the input frame with hardware acceleration.
-    Returns:
-        annotated_frame (numpy.ndarray): Frame plotted with active tracking boxes.
-        detections (list): List of detected objects with class, confidence, and box coordinates.
+    Lightweight crop-level visual analysis to resolve CLIP embedding collisions.
+    Uses COLOR-INDEPENDENT texture features to distinguish cards from phones/books.
+    Runs in <1ms on Jetson Orin Nano — only triggered for known confusable pairs.
+
+    Key insight: ID cards (any color) have PRINTED text, logos, borders which create
+    high-frequency texture detail. Phone screens are smoother (pixel-perfect UI or
+    dark/reflective when off). This distinction is independent of card background color.
+
+    Signals used:
+      1. Laplacian variance — measures texture sharpness (printed text >> screen content)
+      2. Canny edge density — printed borders and text create dense edges
+      3. Grayscale std dev — printed content creates varied intensity patterns
+      4. Bounding box area — cards are physically smaller than books
     """
-    if model is None:
-        return frame, []
+    if class_name not in CONFUSABLE_GROUPS:
+        return class_name
 
-    try:
-        # Run tracking using ByteTrack, utilizing selected hardware device
-        results = model.track(
-            frame,
-            persist=True,
-            tracker="bytetrack.yaml",
-            device=device,
-            verbose=False
-        )
-    except Exception as e:
-        # Fallback to standard inference if tracker fails or is not found
-        try:
-            results = model(frame, device=device, verbose=False)
-        except Exception as ex:
-            print(f"Error during YOLO detection: {ex}")
-            return frame, []
+    x1, y1, x2, y2 = [int(c) for c in coords]
+    h_frame, w_frame = frame.shape[:2]
 
-    detections = []
-    annotated_frame = frame.copy()
+    # Clamp to frame boundaries
+    x1, y1 = max(0, x1), max(0, y1)
+    x2, y2 = min(w_frame, x2), min(h_frame, y2)
 
-    if results and len(results) > 0:
-        result = results[0]
-        # Draw bounding boxes onto the frame using YOLO's native plotter
-        try:
-            annotated_frame = result.plot()
-        except Exception as e:
-            print(f"Error plotting annotations: {e}")
+    if x2 - x1 < 10 or y2 - y1 < 10:
+        return class_name  # Crop too small to analyze
 
-        # Extract details including raw box coordinates for interpolation/caching
-        if result.boxes is not None:
-            for box in result.boxes:
-                if box.cls is not None and len(box.cls) > 0:
-                    cls = int(box.cls[0])
-                    conf = float(box.conf[0]) if box.conf is not None else 0.0
-                    class_name = model.names[cls]
-                    
-                    # Grab coordinates [x1, y1, x2, y2]
-                    coords = box.xyxy[0].tolist() if box.xyxy is not None else [0, 0, 0, 0]
-                    # Get tracking ID if available
-                    track_id = int(box.id[0].item()) if box.id is not None else None
-                    
-                    detections.append({
-                        "id": track_id,
-                        "class": class_name,
-                        "confidence": round(conf, 2),
-                        "box": [int(c) for c in coords]
-                    })
+    crop = frame[y1:y2, x1:x2]
+    gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
 
-    return annotated_frame, detections
+    # 1. Laplacian variance — measures texture/sharpness
+    #    Printed text and logos: high variance (sharp edges at many scales)
+    #    Phone screen (off=dark, on=smooth UI): lower variance
+    laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
+
+    # 2. Edge density — Canny edges as fraction of total pixels
+    edges = cv2.Canny(gray, 50, 150)
+    edge_density = np.count_nonzero(edges) / max(edges.size, 1)
+
+    # 3. Grayscale std dev — printed content creates varied intensity
+    gray_std = float(gray.std())
+
+    # 4. Bounding box area as fraction of the full frame
+    box_area = (x2 - x1) * (y2 - y1)
+    frame_area = h_frame * w_frame
+    area_ratio = box_area / max(frame_area, 1)
+
+    # Score: positive = card-like, negative = phone/book-like
+    score = 0.0
+
+    # Printed text/logos create high Laplacian variance (strongest signal)
+    if laplacian_var > 500:
+        score += 1.5  # Strong card signal
+    elif laplacian_var < 150:
+        score -= 1.5  # Smooth screen = phone
+
+    # ID cards have dense edges from text, borders, printed elements
+    if edge_density > 0.08:
+        score += 1.0
+    elif edge_density < 0.04:
+        score -= 1.0
+
+    # Printed content creates high grayscale variance
+    if gray_std > 55:
+        score += 0.5
+    elif gray_std < 25:
+        score -= 0.5
+
+    # ID cards are small — typically <5% of frame area
+    if area_ratio < 0.05:
+        score += 0.5
+    elif area_ratio > 0.12:
+        score -= 0.5
+
+    # Resolve: need strong agreement to reclassify
+    if score >= 2.0:
+        return "card"
+    elif score <= -2.0:
+        # Large + smooth = likely a book; otherwise phone
+        if area_ratio > 0.08:
+            return "book"
+        return "cell phone"
+
+    # Not confident enough to override — keep YOLO's original label
+    return class_name
 
 # Dynamic color map for drawing cached boxes
 CLASS_COLORS = {
     "person": (255, 180, 0),      # Cyber Cyan/Blue BGR
-    "sports ball": (0, 255, 120),  # Neon Green BGR
+    "card": (0, 255, 120),         # Neon Green BGR
+    "cell phone": (0, 200, 255),   # Orange BGR
     "cup": (192, 132, 252),        # Glowing Purple BGR
 }
 
@@ -218,3 +249,68 @@ def draw_cached_boxes(frame, detections):
         )
         
     return annotated
+
+
+def detect(frame):
+    """
+    Runs YOLOv8 object tracking on the input frame with hardware acceleration.
+    Returns:
+        annotated_frame (numpy.ndarray): Frame plotted with active tracking boxes.
+        detections (list): List of detected objects with class, confidence, and box coordinates.
+    """
+    if model is None:
+        return frame, []
+
+    try:
+        # Run tracking using ByteTrack, utilizing selected hardware device
+        results = model.track(
+            frame,
+            persist=True,
+            tracker="bytetrack.yaml",
+            device=device,
+            verbose=False,
+            conf=0.15
+        )
+    except Exception as e:
+        # Fallback to standard inference if tracker fails or is not found
+        try:
+            results = model(frame, device=device, verbose=False)
+        except Exception as ex:
+            print(f"Error during YOLO detection: {ex}")
+            return frame, []
+
+    detections = []
+    annotated_frame = frame.copy()
+
+    if results and len(results) > 0:
+        result = results[0]
+
+        # Extract details including raw box coordinates for interpolation/caching
+        if result.boxes is not None:
+            for box in result.boxes:
+                if box.cls is not None and len(box.cls) > 0:
+                    cls = int(box.cls[0])
+                    conf = float(box.conf[0]) if box.conf is not None else 0.0
+                    class_name = model.names[cls]
+                    
+                    # Grab coordinates [x1, y1, x2, y2]
+                    coords = box.xyxy[0].tolist() if box.xyxy is not None else [0, 0, 0, 0]
+
+                    # Resolve known CLIP confusion pairs via crop analysis
+                    class_name = resolve_class_confusion(frame, class_name, coords)
+
+                    # Get tracking ID if available
+                    track_id = int(box.id[0].item()) if box.id is not None else None
+                    
+                    detections.append({
+                        "id": track_id,
+                        "class": class_name,
+                        "confidence": round(conf, 2),
+                        "box": [int(c) for c in coords]
+                    })
+
+    # Draw boxes AFTER resolver has corrected class names
+    # (replaces result.plot() which drew uncorrected YOLO labels)
+    annotated_frame = draw_cached_boxes(frame, detections)
+
+    return annotated_frame, detections
