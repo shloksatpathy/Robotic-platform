@@ -218,11 +218,117 @@ while True:
 
     elif key == ord("n"):
 
-        print("\n=== ENROLLMENT ===")
+        # In-window name input (no terminal needed)
+        input_name = ""
+        entering = True
 
-        name = input(
-            "Enter person name: "
-        ).strip()
+        while entering:
+
+            ret2, input_frame = cap.read()
+
+            if not ret2:
+                break
+
+            # Dark overlay
+            overlay = input_frame.copy()
+            cv2.rectangle(
+                overlay,
+                (0, 0),
+                (overlay.shape[1], overlay.shape[0]),
+                (0, 0, 0),
+                -1
+            )
+            cv2.addWeighted(
+                overlay, 0.6,
+                input_frame, 0.4,
+                0, input_frame
+            )
+
+            # Title
+            cv2.putText(
+                input_frame,
+                "ENROLL NEW PERSON",
+                (input_frame.shape[1] // 2 - 180, 120),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1.0,
+                (0, 255, 255),
+                2
+            )
+
+            # Prompt
+            cv2.putText(
+                input_frame,
+                "Type name and press ENTER:",
+                (input_frame.shape[1] // 2 - 200, 200),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (200, 200, 200),
+                1
+            )
+
+            # Input field background
+            field_x = input_frame.shape[1] // 2 - 200
+            field_y = 230
+            cv2.rectangle(
+                input_frame,
+                (field_x, field_y),
+                (field_x + 400, field_y + 50),
+                (40, 40, 40),
+                -1
+            )
+            cv2.rectangle(
+                input_frame,
+                (field_x, field_y),
+                (field_x + 400, field_y + 50),
+                (0, 255, 255),
+                2
+            )
+
+            # Typed text with blinking cursor
+            cursor = "_" if int(time.time() * 2) % 2 else " "
+            cv2.putText(
+                input_frame,
+                input_name + cursor,
+                (field_x + 15, field_y + 35),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.9,
+                (255, 255, 255),
+                2
+            )
+
+            # Hint
+            cv2.putText(
+                input_frame,
+                "ESC = Cancel",
+                (input_frame.shape[1] // 2 - 70, 330),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (100, 100, 100),
+                1
+            )
+
+            cv2.imshow("Vision Runtime", input_frame)
+
+            k = cv2.waitKey(30) & 0xFF
+
+            # Enter key — confirm
+            if k == 13:
+                entering = False
+
+            # Escape — cancel
+            elif k == 27:
+                input_name = ""
+                entering = False
+
+            # Backspace
+            elif k == 8:
+                input_name = input_name[:-1]
+
+            # Printable ASCII characters
+            elif 32 <= k <= 126:
+                input_name += chr(k)
+
+        name = input_name.strip()
 
         if len(name):
 
