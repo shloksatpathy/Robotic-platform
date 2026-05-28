@@ -1,7 +1,7 @@
 import faiss
 import numpy as np
 import os
-from audio_utils import record_chunk
+from audio_utils import record_audio
 from embedding import extract_embedding
 from clustering import cluster_unknown
 
@@ -40,7 +40,7 @@ unknown_embeddings = []
 
 while True:
 
-    audio = record_chunk(duration=3)
+    audio = record_audio(duration=3)
 
     speech = detect_speech(audio)
 
