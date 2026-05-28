@@ -28,7 +28,7 @@ def _get_app():
     if _app is None:
         _app = FaceAnalysis(
             name="buffalo_s",
-            providers=["CPUExecutionProvider"]
+            providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
         )
         _app.prepare(
             ctx_id=0,

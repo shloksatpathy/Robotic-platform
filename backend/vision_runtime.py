@@ -25,10 +25,14 @@ track_identity_cache = {}
 # CAMERA
 # ----------------------------------
 
-cap = cv2.VideoCapture(0)
+# Replace with the exact RTSP or HTTP stream URL for your IP camera
+# e.g., "rtsp://192.168.144.108:554/stream1" or "http://192.168.144.108/video"
+CAMERA_SOURCE = "http://192.168.144.108/" 
+
+cap = cv2.VideoCapture(CAMERA_SOURCE)
 
 if not cap.isOpened():
-    raise RuntimeError("Failed to open camera")
+    raise RuntimeError(f"Failed to open camera stream at {CAMERA_SOURCE}")
 
 print("[SYSTEM] Vision runtime started")
 print("[N] Enroll person")

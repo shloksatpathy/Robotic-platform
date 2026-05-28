@@ -8,8 +8,19 @@ from ultralytics import YOLO
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"[SYSTEM] Initializing YOLOv8n engine on device: {device.upper()}")
 
+import os
+
+import os
+
 try:
-    model = YOLO("yolov8s-world.pt")
+    if os.path.exists("yolov8s-world.engine"):
+        model_path = "yolov8s-world.engine"
+    elif os.path.exists("yolov8s-world.onnx"):
+        model_path = "yolov8s-world.onnx"
+    else:
+        model_path = "yolov8s-world.pt"
+        
+    model = YOLO(model_path)
 
     model.set_classes([
     # Human related (merged: head→face, arm→hand)
