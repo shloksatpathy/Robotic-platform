@@ -112,14 +112,6 @@ CONFUSABLE_GROUPS = {
 
 def resolve_class_confusion(frame, class_name, coords):
     """
-    Lightweight crop-level visual analysis to resolve CLIP embedding collisions.
-    Uses COLOR-INDEPENDENT texture features to distinguish cards from phones/books.
-    Runs in <1ms on Jetson Orin Nano — only triggered for known confusable pairs.
-
-    Key insight: ID cards (any color) have PRINTED text, logos, borders which create
-    high-frequency texture detail. Phone screens are smoother (pixel-perfect UI or
-    dark/reflective when off). This distinction is independent of card background color.
-
     Signals used:
       1. Laplacian variance — measures texture sharpness (printed text >> screen content)
       2. Canny edge density — printed borders and text create dense edges
