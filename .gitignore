@@ -1,4 +1,5 @@
 /venv
+/voiceenv
 /node_modules
 /__pycache__/
 *.pt
