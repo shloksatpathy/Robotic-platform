@@ -1,17 +1,23 @@
 import sounddevice as sd
 import numpy as np
 
-RATE = 16000
+def record_audio(duration=5):
+    print(f"[Mic] Recording for {duration} seconds...")
 
-def record_audio(duration=3):
-    audio=sd.rec(
-        int(duration*RATE),
-        sample_rate = SAMPLE_RATE,
-        channel=1,
+    audio = sd.rec(
+        int(duration * 16000),
+        samplerate=16000,
+        channels=1,
+        device=1,
         dtype='float32'
     )
 
-
     sd.wait()
-
-    return audio.flatten()
+    audio = audio.flatten()
+    
+    # Normalize enrollment audio to match runtime audio
+    peak = np.abs(audio).max()
+    if peak > 0.001:
+        audio = audio / peak * 0.9
+        
+    return audio
