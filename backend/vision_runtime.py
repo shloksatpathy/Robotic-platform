@@ -1,5 +1,7 @@
 import cv2
 import time
+import datetime
+import subprocess
 
 from detector import detect
 from face.recognise import FaceRecognizer
@@ -29,7 +31,7 @@ track_identity_cache = {}
 # e.g., "rtsp://192.168.144.108:554/stream1" or "http://192.168.144.108/video"
 CAMERA_SOURCE = "http://192.168.144.108/" 
 
-cap = cv2.VideoCapture(CAMERA_SOURCE)
+cap = cv2.VideoCapture(0)
 
 if not cap.isOpened():
     raise RuntimeError(f"Failed to open camera stream at {CAMERA_SOURCE}")
@@ -43,6 +45,12 @@ print("[Q] Quit")
 # ----------------------------------
 
 enrollment_session = None
+
+# ----------------------------------
+# GREETING STATE
+# ----------------------------------
+
+greeted_today = {}
 
 # ----------------------------------
 # MAIN LOOP
@@ -154,6 +162,21 @@ while True:
                     "score": score,
                     "last_update": current_time
                 }
+
+                # Greet the person if recognized and not yet greeted today
+                if name != "Unknown":
+                    today = datetime.date.today()
+                    if greeted_today.get(name) != today:
+                        greeted_today[name] = today
+                        print(f"[GREETING] Hello, {name}")
+                        try:
+                            # Use PowerShell for non-blocking TTS on Windows without extra dependencies
+                            subprocess.Popen([
+                                "powershell", "-Command",
+                                f"Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('Hello {name}');"
+                            ], creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000))
+                        except Exception as tts_e:
+                            print(f"[ERROR] TTS failed: {tts_e}")
 
             except Exception as e:
 
