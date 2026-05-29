@@ -1,54 +1,51 @@
 # Robotic Platform
 
-A full-stack application that provides real-time video streaming and object detection capabilities. It uses a FastAPI backend equipped with YOLOv8 for computer vision tasks and a React (Vite) frontend to consume and display the real-time websocket feed.
+A Python-based AI application that provides real-time video streaming, object detection, facial recognition, and speech recognition capabilities.
 
 ## Features
 
-- **Real-Time Video Streaming**: Captures video from a webcam and streams it in real-time over WebSockets using Base64 encoding.
-- **Object Detection & Tracking**: Utilizes Ultralytics YOLOv8 and ByteTrack to perform object detection and tracking.
-- **FastAPI Backend**: A lightweight, high-performance web server that manages WebSocket connections and computer vision processing.
-- **React Frontend**: Built with Vite and React for a modern, responsive user interface.
+- **Real-Time Video Streaming & Object Detection**: Captures video and streams it in real-time. Utilizes Ultralytics YOLOv8s-World and ByteTrack to perform open-vocabulary object detection and tracking.
+- **Face Recognition**: Includes a vision runtime (`vision_runtime.py`) that tracks individuals, allows for real-time face enrollment, and recognizes known people with TTS greetings.
+- **Speech Recognition**: Includes a dedicated module (`speech_recognition/speech_runtime.py`) for Voice Activity Detection (VAD) and speaker diarization/identification to recognize known speakers and cluster unknown speakers.
+- **FastAPI Backend**: A high-performance web server (`main.py`) that manages WebSocket connections and computer vision processing, streaming annotated frames and detection data.
 
 ## Directory Structure
 
 ```text
-Robotic platform/
-├── backend/                  # FastAPI backend server
-│   ├── detector.py           # YOLOv8 object detection and tracking logic
-│   ├── main.py               # FastAPI application and WebSocket endpoints
-│   ├── yolov8n.pt            # Pre-trained YOLOv8 weights (downloaded on first run/included)
+Robotic-platform/
+├── backend/                  # Core Python modules
+│   ├── main.py               # FastAPI server and WebSocket streaming endpoint
+│   ├── detector.py           # YOLOv8s-World object detection and tracking logic
+│   ├── vision_runtime.py     # Standalone runtime for face recognition & enrollment
+│   ├── face/                 # Face recognition and enrollment modules
+│   ├── speech_recognition/   # Speaker recognition and diarization modules
+│   ├── yolov8s-world.pt      # Pre-trained YOLOv8s-World weights
 │   └── ...
-├── frontend/                 # React frontend application
-│   ├── src/                  # React source code
-│   ├── public/               # Static assets
-│   ├── package.json          # Node.js dependencies and scripts
-│   ├── vite.config.js        # Vite configuration
-│   └── ...
-├── requirements.txt          # Python dependencies for the backend
-└── .gitignore                # Git ignore rules
+├── requirements.txt          # Python dependencies
+├── architecture_walkthrough.md # Detailed architecture and data flow documentation
+└── README.md
 ```
 
 ## Prerequisites
 
-- **Python 3.8+** (for the backend)
-- **Node.js 18+** (for the frontend)
-- **A working webcam** (for real-time video capture)
+- **Python 3.8+**
+- **A working webcam/IP Camera** (for real-time video capture and face recognition)
+- **A working microphone** (for speech recognition features)
 
 ## Installation & Setup
 
-### 1. Backend Setup
-
-The backend requires several Python libraries, including FastAPI, Uvicorn, OpenCV, and Ultralytics.
-
 1. Navigate to the project root directory:
    ```bash
-   cd "Robotic platform"
+   cd "Robotic-platform"
    ```
 
-2. Create a virtual environment (optional but recommended):
+2. Create and activate a virtual environment (optional but recommended):
    ```bash
    python -m venv venv
-   source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+   # On Windows:
+   venv\Scripts\activate
+   # On macOS/Linux:
+   source venv/bin/activate
    ```
 
 3. Install the required Python packages:
@@ -56,34 +53,35 @@ The backend requires several Python libraries, including FastAPI, Uvicorn, OpenC
    pip install -r requirements.txt
    ```
 
-4. Start the FastAPI server:
-   ```bash
-   cd backend
-   uvicorn main:app --reload
-   ```
-   The backend WebSocket will now be running and listening for connections at `ws://localhost:8000/ws`.
+## Usage
 
-### 2. Frontend Setup
+### 1. Web Socket Server (FastAPI)
+To run the main FastAPI streaming server:
+```bash
+cd backend
+uvicorn main:app --reload
+```
+The backend WebSocket will be running and listening for connections at `ws://localhost:8000/ws`.
 
-The frontend is a React application set up with Vite.
+### 2. Vision Runtime (Face Recognition & Enrollment)
+To run the standalone vision runtime with facial recognition:
+```bash
+cd backend
+python vision_runtime.py
+```
+- Press **`N`** to enroll a new person in the database.
+- Press **`Q`** to quit.
 
-1. Navigate to the frontend directory:
-   ```bash
-   cd "Robotic platform/frontend"
-   ```
-
-2. Install the Node.js dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
-   The application should now be accessible in your browser (typically at `http://localhost:5173`).
+### 3. Speech Recognition Scanner
+To run the speech recognition room scanner:
+```bash
+cd backend/speech_recognition
+python speech_runtime.py 5
+```
+*(The argument `5` is the scan duration in seconds).*
 
 ## Technologies Used
 
-- **Backend**: Python, [FastAPI](https://fastapi.tiangolo.com/), [Uvicorn](https://www.uvicorn.org/), [OpenCV](https://opencv.org/), [Ultralytics YOLOv8](https://docs.ultralytics.com/), WebSockets
-- **Frontend**: JavaScript/TypeScript, [React](https://react.dev/), [Vite](https://vitejs.dev/)
+- **Computer Vision**: [OpenCV](https://opencv.org/), [Ultralytics YOLOv8s-World](https://docs.ultralytics.com/)
+- **Web API**: [FastAPI](https://fastapi.tiangolo.com/), [Uvicorn](https://www.uvicorn.org/), WebSockets
+- **Audio & Speech**: Python audio libraries for VAD and embedding extraction.
