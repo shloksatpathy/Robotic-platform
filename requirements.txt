@@ -1,6 +1,8 @@
-fastapi
-uvicorn
 ultralytics
+numpy
 opencv-python
-websockets
 onnxruntime-gpu
+insightface
+faiss-cpu
+speechbrain
+sounddevice
