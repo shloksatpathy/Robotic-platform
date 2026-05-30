@@ -4,17 +4,15 @@ A Python-based AI application that provides real-time video streaming, object de
 
 ## Features
 
-- **Real-Time Video Streaming & Object Detection**: Captures video and streams it in real-time. Utilizes Ultralytics YOLOv8s-World and ByteTrack to perform open-vocabulary object detection and tracking.
+- **Object Detection**: Utilizes Ultralytics YOLOv8s-World and ByteTrack to perform open-vocabulary object detection and tracking.
 - **Face Recognition**: Includes a vision runtime (`vision_runtime.py`) that tracks individuals, allows for real-time face enrollment, and recognizes known people with TTS greetings.
 - **Speech Recognition**: Includes a dedicated module (`speech_recognition/speech_runtime.py`) for Voice Activity Detection (VAD) and speaker diarization/identification to recognize known speakers and cluster unknown speakers.
-- **FastAPI Backend**: A high-performance web server (`main.py`) that manages WebSocket connections and computer vision processing, streaming annotated frames and detection data.
 
 ## Directory Structure
 
 ```text
 Robotic-platform/
 ├── backend/                  # Core Python modules
-│   ├── main.py               # FastAPI server and WebSocket streaming endpoint
 │   ├── detector.py           # YOLOv8s-World object detection and tracking logic
 │   ├── vision_runtime.py     # Standalone runtime for face recognition & enrollment
 │   ├── face/                 # Face recognition and enrollment modules
@@ -55,15 +53,7 @@ Robotic-platform/
 
 ## Usage
 
-### 1. Web Socket Server (FastAPI)
-To run the main FastAPI streaming server:
-```bash
-cd backend
-uvicorn main:app --reload
-```
-The backend WebSocket will be running and listening for connections at `ws://localhost:8000/ws`.
-
-### 2. Vision Runtime (Face Recognition & Enrollment)
+### 1. Vision Runtime (Face Recognition & Enrollment)
 To run the standalone vision runtime with facial recognition:
 ```bash
 cd backend
@@ -72,7 +62,7 @@ python vision_runtime.py
 - Press **`N`** to enroll a new person in the database.
 - Press **`Q`** to quit.
 
-### 3. Speech Recognition Scanner
+### 2. Speech Recognition Scanner
 To run the speech recognition room scanner:
 ```bash
 cd backend/speech_recognition
@@ -83,5 +73,4 @@ python speech_runtime.py 5
 ## Technologies Used
 
 - **Computer Vision**: [OpenCV](https://opencv.org/), [Ultralytics YOLOv8s-World](https://docs.ultralytics.com/)
-- **Web API**: [FastAPI](https://fastapi.tiangolo.com/), [Uvicorn](https://www.uvicorn.org/), WebSockets
 - **Audio & Speech**: Python audio libraries for VAD and embedding extraction.
