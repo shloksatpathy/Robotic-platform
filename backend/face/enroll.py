@@ -26,9 +26,22 @@ _app = None
 def _get_app():
     global _app
     if _app is None:
+        trt_cache_path = os.path.join(os.path.dirname(__file__), "trt_cache")
+        os.makedirs(trt_cache_path, exist_ok=True)
+        providers = [
+            ("TensorrtExecutionProvider", {
+                "device_id": 0,
+                "trt_max_workspace_size": 1073741824,  # 1GB
+                "trt_fp16_enable": True,
+                "trt_engine_cache_enable": True,
+                "trt_engine_cache_path": trt_cache_path
+            }),
+            "CUDAExecutionProvider",
+            "CPUExecutionProvider"
+        ]
         _app = FaceAnalysis(
             name="buffalo_s",
-            providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
+            providers=providers
         )
         _app.prepare(
             ctx_id=0,

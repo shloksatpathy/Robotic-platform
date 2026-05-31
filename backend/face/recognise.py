@@ -38,8 +38,19 @@ class FaceRecognizer:
     def __init__(self, providers=None):
 
         if providers is None:
-            providers = ["CUDAExecutionProvider",
-                         "CPUExecutionProvider"]
+            trt_cache_path = os.path.join(os.path.dirname(__file__), "trt_cache")
+            os.makedirs(trt_cache_path, exist_ok=True)
+            providers = [
+                ("TensorrtExecutionProvider", {
+                    "device_id": 0,
+                    "trt_max_workspace_size": 1073741824,  # 1GB
+                    "trt_fp16_enable": True,
+                    "trt_engine_cache_enable": True,
+                    "trt_engine_cache_path": trt_cache_path
+                }),
+                "CUDAExecutionProvider",
+                "CPUExecutionProvider"
+            ]
 
         self.app = FaceAnalysis(
             name="buffalo_s",
