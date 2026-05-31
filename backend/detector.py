@@ -10,15 +10,21 @@ print(f"[SYSTEM] Initializing YOLOv8n engine on device: {device.upper()}")
 
 import os
 
-import os
-
 try:
-    if os.path.exists("yolov8s-world.engine"):
-        model_path = "yolov8s-world.engine"
-    elif os.path.exists("yolov8s-world.onnx"):
-        model_path = "yolov8s-world.onnx"
+    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    engine_path = os.path.join(backend_dir, "yolov8s-world.engine")
+    onnx_path = os.path.join(backend_dir, "yolov8s-world.onnx")
+    pt_path = os.path.join(backend_dir, "yolov8s-world.pt")
+
+    if os.path.exists(engine_path):
+        model_path = engine_path
+        print(f"[SYSTEM] Loading optimized TensorRT engine: {model_path}")
+    elif os.path.exists(onnx_path):
+        model_path = onnx_path
+        print(f"[SYSTEM] Loading ONNX model: {model_path}")
     else:
-        model_path = "yolov8s-world.pt"
+        model_path = pt_path
+        print(f"[SYSTEM] Loading PyTorch weights: {model_path}")
         
     model = YOLO(model_path)
 
