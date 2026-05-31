@@ -6,3 +6,5 @@ insightface
 faiss-cpu
 speechbrain
 sounddevice
+scikit-learn
+
