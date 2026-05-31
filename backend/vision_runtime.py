@@ -2,10 +2,17 @@ import cv2
 import time
 import datetime
 import subprocess
+import sys
+import os
+import threading
+
+# Add speech recognition folder to system path so we can import from it
+sys.path.append(os.path.join(os.path.dirname(__file__), "speech_recognition"))
 
 from detector import detect
 from face.recognise import FaceRecognizer
 from face.enroll import EnrollmentSession
+from speech_runtime import scan_room
 
 
 # ----------------------------------
@@ -22,6 +29,30 @@ recognizer = FaceRecognizer()
 
 # track_id -> identity cache
 track_identity_cache = {}
+
+# ----------------------------------
+# SPEECH RECOGNITION STATE
+# ----------------------------------
+
+speech_status = "Idle"
+speech_results = None
+speech_thread = None
+
+def set_speech_status(status):
+    global speech_status
+    speech_status = status
+
+def run_speech_scan(duration=5):
+    global speech_status, speech_results
+    try:
+        results = scan_room(duration, status_callback=set_speech_status)
+        speech_results = results
+        speech_status = "Idle"
+    except Exception as e:
+        print(f"[ERROR] Speech scan failed: {e}")
+        speech_status = "Error"
+        time.sleep(2)
+        speech_status = "Idle"
 
 # ----------------------------------
 # CAMERA
@@ -217,13 +248,39 @@ while True:
 
     cv2.putText(
         annotated_frame,
-        "N = Enroll | Q = Quit",
+        "N = Enroll | Q = Quit | S = Scan Voice",
         (10, 30),
         cv2.FONT_HERSHEY_SIMPLEX,
         0.7,
         (0, 255, 255),
         2
     )
+
+    # Draw Speech Scan Status / Results
+    if speech_status != "Idle":
+        color = (0, 165, 255)  # Orange for active recording / processing
+        cv2.putText(
+            annotated_frame,
+            f"[Speech Scan] {speech_status}",
+            (10, 65),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            color,
+            2
+        )
+    elif speech_results is not None:
+        color = (0, 255, 0)  # Green for results
+        known_str = ", ".join(speech_results["known"]) if speech_results["known"] else "None"
+        res_str = f"Last Scan: {speech_results['total']} Spk (Known: {known_str}, Unk: {speech_results['unknown']})"
+        cv2.putText(
+            annotated_frame,
+            res_str,
+            (10, 65),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            color,
+            2
+        )
 
     cv2.imshow(
         "Vision Runtime",
@@ -240,6 +297,17 @@ while True:
 
     if key == ord("q"):
         break
+
+    # Scan Speech
+    elif key == ord("s"):
+        if speech_thread is None or not speech_thread.is_alive():
+            print("[INFO] Starting speech recognition scan in background...")
+            speech_thread = threading.Thread(
+                target=run_speech_scan,
+                args=(5,),
+                daemon=True
+            )
+            speech_thread.start()
 
     # Enroll
 

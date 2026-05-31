@@ -7,7 +7,9 @@ from speaker_db import SpeakerDatabase
 from clustering import cluster_unknown
 from vad import detect_speech
 
-def scan_room(duration=5):
+def scan_room(duration=5, status_callback=None):
+    if status_callback:
+        status_callback("Recording...")
     print("\nInitializing Speech Recognition Scanner...")
     db = SpeakerDatabase()
     
@@ -17,6 +19,8 @@ def scan_room(duration=5):
     # 1. Capture audio synchronously
     audio = record_audio(duration)
     
+    if status_callback:
+        status_callback("Processing...")
     print("[Processing] Running Voice Activity Detection...")
     
     # 2. Find all speech segments in the recording
@@ -62,6 +66,12 @@ def scan_room(duration=5):
         print("Known Speakers Detected: None")
     print(f"Unknown Speakers Estimated: {unknown_speaker_count}")
     print("-------------------------")
+    
+    return {
+        "total": total,
+        "known": list(detected_known_speakers),
+        "unknown": unknown_speaker_count
+    }
 
 if __name__ == "__main__":
     scan_duration = 5
