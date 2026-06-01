@@ -51,7 +51,10 @@ def main():
             format="engine",
             device=0,
             half=True,
-            dynamic=True
+            dynamic=False,
+            simplify=False,
+            opset=18,
+            imgsz=672
         )
         print(f"[SUCCESS] Export completed. Model path: {exported_path}")
         
