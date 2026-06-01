@@ -1,0 +1,33 @@
+--extra-index-url https://pypi.jetson-ai-lab.io/jp6/cu126
+
+# Jetson-Optimized PyTorch & Libraries (Pin stable versions to avoid nightlies)
+torch==2.5.0
+torchvision==0.20.0
+onnxruntime-gpu
+
+# CLIP Model (Required by YOLO-World)
+git+https://github.com/openai/CLIP.git
+
+# System & Data Processing Dependencies
+numpy
+scikit-learn
+sounddevice
+faiss-cpu
+matplotlib
+polars
+psutil
+pyyaml
+requests
+tqdm
+
+# Huggingface & Speech Dependencies
+huggingface_hub
+hyperpyyaml
+sentencepiece
+soundfile
+
+# Main AI Frameworks
+ultralytics
+ultralytics-thop
+speechbrain
+insightface
