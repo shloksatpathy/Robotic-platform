@@ -8,3 +8,4 @@
 *.npy
 *.ini
 \__pycache__
+*.onnx
