@@ -1,4 +1,5 @@
 # pyrefly: ignore [missing-import]
+import tensorrt
 import cv2
 import numpy as np
 import torch
@@ -16,93 +17,30 @@ try:
     onnx_path = os.path.join(backend_dir, "yolov8s-world.onnx")
     pt_path = os.path.join(backend_dir, "yolov8s-world.pt")
 
-    if os.path.exists(engine_path):
-        model_path = engine_path
-        print(f"[SYSTEM] Loading optimized TensorRT engine: {model_path}")
-    elif os.path.exists(onnx_path):
-        model_path = onnx_path
-        print(f"[SYSTEM] Loading ONNX model: {model_path}")
-    else:
-        model_path = pt_path
-        print(f"[SYSTEM] Loading PyTorch weights: {model_path}")
+    custom_classes = [
+        "person", "hand", "face", "laptop", "computer monitor", "keyboard", "mouse", 
+        "cell phone", "printer", "scanner", "microphone", "speaker", "headphones", 
+        "router", "circuit board", "battery", "charger", "charging cable", "usb drive",
+        "chair", "couch", "desk", "cabinet", "drawer", "bookshelf", "pen", "notebook", 
+        "book", "document", "folder", "calendar", "sticky note", "backpack", "handbag", 
+        "suitcase", "glasses", "watch", "keys", "card", "bottle", "cup", "plate", 
+        "bowl", "scissors", "tissue box", "stairs", "fire extinguisher", "clock", 
+        "potted plant", "toolbox", "screwdriver", "multimeter", "sensor", "motor", 
+        "drone", "robot", "camera"
+    ]
+
+    # Force use of PyTorch (.pt) weights because the Python TensorRT bindings on this machine 
+    # suffer from a Windows DLL conflict (CUDA Error 35) when trying to initialize the GPU. 
+    # PyTorch's native CUDA backend works perfectly and is fully hardware accelerated!
+    model_path = pt_path
+    print(f"[SYSTEM] Loading PyTorch weights: {model_path}")
         
     model = YOLO(model_path)
 
-    model.set_classes([
-    # Human related (merged: head→face, arm→hand)
-    "person",
-    "hand",
-    "face",
-
-    # Computers & electronics (merged: earphones→headphones)
-    "laptop",
-    "computer monitor",
-    "keyboard",
-    "mouse",
-    "cell phone",
-    "printer",
-    "scanner",
-    "microphone",
-    "speaker",
-    "headphones",
-    "router",
-    "circuit board",
-    "battery",
-    "charger",
-    "charging cable",
-    "usb drive",
-
-    # Furniture (merged: table→desk)
-    "chair",
-    "couch",
-    "desk",
-    "cabinet",
-    "drawer",
-    "bookshelf",
-
-    # Stationery (merged: pencil/marker→pen, paper→document)
-    "pen",
-    "notebook",
-    "book",
-    "document",
-    "folder",
-    "calendar",
-    "sticky note",
-
-    # Personal items (merged: wallet→card)
-    "backpack",
-    "handbag",
-    "suitcase",
-    "glasses",
-    "watch",
-    "keys",
-    "card",
-
-    # Desk items
-    "bottle",
-    "cup",
-    "plate",
-    "bowl",
-    "scissors",
-    "tissue box",
-
-    # Office infrastructure
-    "stairs",
-    "fire extinguisher",
-    "clock",
-    "potted plant",
-
-    # Robotics / engineering
-    "toolbox",
-    "screwdriver",
-    "multimeter",
-    "sensor",
-    "motor",
-    "drone",
-    "robot",
-    "camera"
-])
-    if model is not None:
+    # Only .pt models support dynamic class setting via set_classes
+    if model_path.endswith('.pt') and hasattr(model, 'set_classes'):
+        model.set_classes(custom_classes)
+    if model is not None and model_path.endswith('.pt'):
         model.to(device)
 except Exception as e:
     print(f"Error loading YOLO model on device {device}: {e}")
@@ -260,7 +198,7 @@ def draw_cached_boxes(frame, detections):
     return annotated
 
 
-def detect(frame):
+def detect(frame, selected_track_id=None):
     """
     Runs YOLOv8 object tracking on the input frame with hardware acceleration.
     Returns:
@@ -300,7 +238,7 @@ def detect(frame):
                 if box.cls is not None and len(box.cls) > 0:
                     cls = int(box.cls[0])
                     conf = float(box.conf[0]) if box.conf is not None else 0.0
-                    class_name = model.names[cls]
+                    class_name = custom_classes[cls] if cls < len(custom_classes) else f"class_{cls}"
                     
                     # Grab coordinates [x1, y1, x2, y2]
                     coords = box.xyxy[0].tolist() if box.xyxy is not None else [0, 0, 0, 0]
@@ -317,6 +255,10 @@ def detect(frame):
                         "confidence": round(conf, 2),
                         "box": [int(c) for c in coords]
                     })
+
+    # Apply select-to-track filtering if a specific ID is selected
+    if selected_track_id is not None:
+        detections = [d for d in detections if d["id"] == selected_track_id]
 
     # Draw boxes AFTER resolver has corrected class names
     # (replaces result.plot() which drew uncorrected YOLO labels)
