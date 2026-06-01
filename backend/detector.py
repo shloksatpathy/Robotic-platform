@@ -11,6 +11,17 @@ print(f"[SYSTEM] Initializing YOLOv8n engine on device: {device.upper()}")
 
 import os
 
+# Define the custom classes that YOLO-World should look for
+custom_classes = [ "person", "hand", "face", "laptop", "computer monitor", "keyboard", "mouse", 
+            "cell phone", "printer", "scanner", "microphone", "speaker", "headphones", 
+            "router", "circuit board", "battery", "charger", "charging cable", "usb drive",
+            "chair", "couch", "desk", "cabinet", "drawer", "bookshelf", "pen", "notebook", 
+            "book", "document", "folder", "calendar", "sticky note", "backpack", "handbag", 
+            "suitcase", "glasses", "watch", "keys", "card", "bottle", "cup", "plate", 
+            "bowl", "scissors", "tissue box", "stairs", "fire extinguisher", "clock", 
+            "potted plant", "toolbox", "screwdriver", "multimeter", "sensor", "motor", 
+            "drone", "robot", "camera"]
+
 try:
     backend_dir = os.path.dirname(os.path.abspath(__file__))
     engine_path = os.path.join(backend_dir, "yolov8s-world.engine")
@@ -24,10 +35,11 @@ try:
         model_path = onnx_path
         print(f"[SYSTEM] Loading ONNX model: {model_path}")
     else:
-    model_path = pt_path
-    print(f"[SYSTEM] Loading PyTorch weights: {model_path}")
+        model_path = pt_path
+        print(f"[SYSTEM] Loading PyTorch weights: {model_path}")
         
-    model = YOLO(model_path)
+    # Explicitly define task='detect' to avoid warnings when loading .engine/.onnx
+    model = YOLO(model_path, task='detect')
 
     # Only .pt models support dynamic class setting via set_classes
     if model_path.endswith('.pt') and hasattr(model, 'set_classes'):
