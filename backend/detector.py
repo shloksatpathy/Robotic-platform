@@ -17,21 +17,13 @@ try:
     onnx_path = os.path.join(backend_dir, "yolov8s-world.onnx")
     pt_path = os.path.join(backend_dir, "yolov8s-world.pt")
 
-    custom_classes = [
-        "person", "hand", "face", "laptop", "computer monitor", "keyboard", "mouse", 
-        "cell phone", "printer", "scanner", "microphone", "speaker", "headphones", 
-        "router", "circuit board", "battery", "charger", "charging cable", "usb drive",
-        "chair", "couch", "desk", "cabinet", "drawer", "bookshelf", "pen", "notebook", 
-        "book", "document", "folder", "calendar", "sticky note", "backpack", "handbag", 
-        "suitcase", "glasses", "watch", "keys", "card", "bottle", "cup", "plate", 
-        "bowl", "scissors", "tissue box", "stairs", "fire extinguisher", "clock", 
-        "potted plant", "toolbox", "screwdriver", "multimeter", "sensor", "motor", 
-        "drone", "robot", "camera"
-    ]
-
-    # Force use of PyTorch (.pt) weights because the Python TensorRT bindings on this machine 
-    # suffer from a Windows DLL conflict (CUDA Error 35) when trying to initialize the GPU. 
-    # PyTorch's native CUDA backend works perfectly and is fully hardware accelerated!
+    if os.path.exists(engine_path):
+        model_path = engine_path
+        print(f"[SYSTEM] Loading optimized TensorRT engine: {model_path}")
+    elif os.path.exists(onnx_path):
+        model_path = onnx_path
+        print(f"[SYSTEM] Loading ONNX model: {model_path}")
+    else:
     model_path = pt_path
     print(f"[SYSTEM] Loading PyTorch weights: {model_path}")
         

@@ -2,7 +2,7 @@
 /voiceenv
 /node_modules
 /__pycache__/
-*.pt
+#*.pt
 *.svg
 *.png
 *.npy
