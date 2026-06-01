@@ -33,6 +33,20 @@ def main():
     print("[INFO] Loading PyTorch model...")
     try:
         model = YOLO(pt_model_path)
+        
+        # Set custom robotic classes before exporting so they are baked into the ONNX graph!
+        print("[INFO] Embedding custom classes into YOLO-World...")
+        model.set_classes([
+            "person", "hand", "face", "laptop", "computer monitor", "keyboard", "mouse", 
+            "cell phone", "printer", "scanner", "microphone", "speaker", "headphones", 
+            "router", "circuit board", "battery", "charger", "charging cable", "usb drive",
+            "chair", "couch", "desk", "cabinet", "drawer", "bookshelf", "pen", "notebook", 
+            "book", "document", "folder", "calendar", "sticky note", "backpack", "handbag", 
+            "suitcase", "glasses", "watch", "keys", "card", "bottle", "cup", "plate", 
+            "bowl", "scissors", "tissue box", "stairs", "fire extinguisher", "clock", 
+            "potted plant", "toolbox", "screwdriver", "multimeter", "sensor", "motor", 
+            "drone", "robot", "camera"
+        ])
     except Exception as e:
         print(f"[ERROR] Failed to load PyTorch model: {e}")
         sys.exit(1)
