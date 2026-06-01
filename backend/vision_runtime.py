@@ -22,6 +22,33 @@ from speech_runtime import scan_room
 RECOGNITION_REFRESH_SEC = 5
 
 # ----------------------------------
+# SELECTION TRACKING
+# ----------------------------------
+
+selected_track_id = None
+current_detections = []
+
+def mouse_callback(event, x, y, flags, param):
+    global selected_track_id, current_detections
+    if event == cv2.EVENT_LBUTTONDOWN:
+        clicked_box = False
+        for det in current_detections:
+            x1, y1, x2, y2 = det["box"]
+            if x1 <= x <= x2 and y1 <= y <= y2:
+                selected_track_id = det["id"]
+                clicked_box = True
+                print(f"[INFO] Locked tracking onto ID: {selected_track_id}")
+                break
+        
+        if not clicked_box:
+            selected_track_id = None
+            print("[INFO] Cleared tracking lock")
+
+# Register window and callback early
+cv2.namedWindow("Vision Runtime")
+cv2.setMouseCallback("Vision Runtime", mouse_callback)
+
+# ----------------------------------
 # FACE RECOGNIZER
 # ----------------------------------
 
@@ -143,7 +170,8 @@ while True:
     # YOLO + BYTE TRACK
     # -----------------------------
 
-    annotated_frame, detections = detect(frame)
+    annotated_frame, detections = detect(frame, selected_track_id=selected_track_id)
+    current_detections = detections
 
     # -----------------------------
     # FACE RECOGNITION
