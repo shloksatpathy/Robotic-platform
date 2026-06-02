@@ -9,3 +9,4 @@
 *.ini
 \__pycache__
 *.onnx
+Employee_image_DB/
