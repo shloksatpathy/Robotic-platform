@@ -5,6 +5,7 @@ import subprocess
 import sys
 import os
 import threading
+import queue
 
 # Add speech recognition folder to system path so we can import from it
 sys.path.append(os.path.join(os.path.dirname(__file__), "speech_recognition"))
@@ -109,6 +110,26 @@ enrollment_session = None
 # ----------------------------------
 
 greeted_today = {}
+greeting_queue = queue.Queue()
+
+def tts_worker():
+    while True:
+        name = greeting_queue.get()
+        if name is None:
+            break
+        print(f"[GREETING] Hello, {name}")
+        try:
+            # Use synchronous subprocess.run to block until speaking finishes
+            subprocess.run([
+                "powershell", "-Command",
+                f"Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('Hello {name}');"
+            ], creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000))
+        except Exception as tts_e:
+            print(f"[ERROR] TTS failed: {tts_e}")
+        greeting_queue.task_done()
+
+tts_thread = threading.Thread(target=tts_worker, daemon=True)
+tts_thread.start()
 
 # ----------------------------------
 # MAIN LOOP
@@ -227,15 +248,7 @@ while True:
                     today = datetime.date.today()
                     if greeted_today.get(name) != today:
                         greeted_today[name] = today
-                        print(f"[GREETING] Hello, {name}")
-                        try:
-                            # Use PowerShell for non-blocking TTS on Windows without extra dependencies
-                            subprocess.Popen([
-                                "powershell", "-Command",
-                                f"Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('Hello {name}');"
-                            ], creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000))
-                        except Exception as tts_e:
-                            print(f"[ERROR] TTS failed: {tts_e}")
+                        greeting_queue.put(name)
 
             except Exception as e:
 
