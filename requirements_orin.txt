@@ -19,6 +19,8 @@ psutil
 pyyaml
 requests
 tqdm
+flask
+flask-cors
 
 # Huggingface & Speech Dependencies
 huggingface_hub

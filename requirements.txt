@@ -7,4 +7,5 @@ faiss-cpu
 speechbrain
 sounddevice
 scikit-learn
-
+flask
+flask-cors
