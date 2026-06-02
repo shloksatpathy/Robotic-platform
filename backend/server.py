@@ -31,7 +31,7 @@ speech_thread = None
 
 recognizer = FaceRecognizer()
 track_identity_cache = {}
-greeted_today = {}
+last_seen_time = {}
 
 RECOGNITION_REFRESH_SEC = 5
 
@@ -56,7 +56,7 @@ def run_speech_scan(duration=5):
 
 def video_processing_loop():
     global latest_jpeg, selected_track_id, current_detections
-    global recognizer, track_identity_cache, greeted_today
+    global recognizer, track_identity_cache, last_seen_time
     global speech_status, speech_results, speech_thread
 
     cap = cv2.VideoCapture(0)
@@ -81,8 +81,10 @@ def video_processing_loop():
         current_detections = detections
 
         # -----------------------------
-        # FACE RECOGNITION
+        # FACE RECOGNITION & GREETINGS
         # -----------------------------
+        visible_names_this_frame = set()
+
         for det in detections:
             if det["class"] != "person":
                 continue
@@ -107,35 +109,40 @@ def video_processing_loop():
                         "score": score,
                         "last_update": current_time
                     }
-
-                    if name != "Unknown":
-                        today = datetime.date.today()
-                        if greeted_today.get(name) != today:
-                            greeted_today[name] = today
-                            print(f"[GREETING] Hello, {name}")
-                            # Support Windows testing vs Linux (Jetson) deployment for TTS
-                            try:
-                                if os.name == 'nt':
-                                    subprocess.Popen([
-                                        "powershell", "-Command",
-                                        f"Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('Hello {name}');"
-                                    ], creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000))
-                                else:
-                                    # On Jetson/Linux
-                                    subprocess.Popen(["espeak", f"Hello {name}"])
-                            except Exception as tts_e:
-                                print(f"[ERROR] TTS failed: {tts_e}")
-
                 except Exception as e:
                     print(f"[ERROR] Recognition failed: {e}")
 
-            # Draw Identity
+            # Draw Identity and collect visible names
             if track_id in track_identity_cache:
                 identity = track_identity_cache[track_id]
                 x1, y1, x2, y2 = det["box"]
-                label = f'{identity["name"]} ({identity["score"]:.2f})'
+                
+                name = identity["name"]
+                if name != "Unknown":
+                    visible_names_this_frame.add(name)
+
+                label = f'{name} ({identity["score"]:.2f})'
                 cv2.putText(annotated_frame, label, (x1, max(20, y1 - 30)),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2)
+
+        # Process Greetings for visible people
+        for name in visible_names_this_frame:
+            last_seen = last_seen_time.get(name, 0)
+            if current_time - last_seen > 5:  # 5 seconds cooldown
+                print(f"[GREETING] Hello, {name}")
+                try:
+                    if os.name == 'nt':
+                        subprocess.Popen([
+                            "powershell", "-Command",
+                            f"Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('Hello {name}');"
+                        ], creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000))
+                    else:
+                        subprocess.Popen(["espeak", f"Hello {name}"])
+                except Exception as tts_e:
+                    print(f"[ERROR] TTS failed: {tts_e}")
+            
+            # Update last seen time while they remain in frame
+            last_seen_time[name] = current_time
 
         # Draw Speech Scan Status / Results
         if speech_status != "Idle":

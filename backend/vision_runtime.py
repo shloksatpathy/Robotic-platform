@@ -90,7 +90,7 @@ def run_speech_scan(duration=5):
 # e.g., "rtsp://192.168.144.108:554/stream1" or "http://192.168.144.108/video"
 CAMERA_SOURCE = "http://192.168.144.108/" 
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 if not cap.isOpened():
     raise RuntimeError(f"Failed to open camera stream at {CAMERA_SOURCE}")
@@ -109,7 +109,7 @@ enrollment_session = None
 # GREETING STATE
 # ----------------------------------
 
-greeted_today = {}
+last_seen_time = {}
 greeting_queue = queue.Queue()
 
 def tts_worker():
@@ -197,6 +197,8 @@ while True:
     # -----------------------------
     # FACE RECOGNITION
     # -----------------------------
+    
+    visible_names_this_frame = set()
 
     for det in detections:
 
@@ -243,12 +245,6 @@ while True:
                     "last_update": current_time
                 }
 
-                # Greet the person if recognized and not yet greeted today
-                if name != "Unknown":
-                    today = datetime.date.today()
-                    if greeted_today.get(name) != today:
-                        greeted_today[name] = today
-                        greeting_queue.put(name)
 
             except Exception as e:
 
@@ -282,6 +278,17 @@ while True:
                 (255, 0, 255),
                 2
             )
+
+            # Collect visible names this frame
+            if identity["name"] != "Unknown":
+                visible_names_this_frame.add(identity["name"])
+
+    # Process Greetings for visible people
+    for name in visible_names_this_frame:
+        last_seen = last_seen_time.get(name, 0)
+        if current_time - last_seen > 5:  # 5 seconds cooldown
+            greeting_queue.put(name)
+        last_seen_time[name] = current_time
 
     # -----------------------------
     # HUD
