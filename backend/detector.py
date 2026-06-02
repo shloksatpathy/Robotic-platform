@@ -99,6 +99,11 @@ def resolve_class_confusion(frame, class_name, coords):
     frame_area = h_frame * w_frame
     area_ratio = box_area / max(frame_area, 1)
 
+    # 5. Aspect ratio
+    w = x2 - x1
+    h = y2 - y1
+    aspect_ratio = max(w, h) / max(min(w, h), 1)
+
     # Score: positive = card-like, negative = phone/book-like
     score = 0.0
 
@@ -126,8 +131,20 @@ def resolve_class_confusion(frame, class_name, coords):
     elif area_ratio > 0.12:
         score -= 0.5
 
+    # Cards have a standard aspect ratio (~1.58). Books are often more square (~1.2 - 1.4)
+    # If the shape doesn't match a standard card, penalize the card score
+    if aspect_ratio < 1.35 or aspect_ratio > 1.8:
+        score -= 1.0
+
+    # If YOLO originally predicted a book, require overwhelming evidence to flip it to a card
+    if class_name == "book":
+        score -= 1.0
+
     # Resolve: need strong agreement to reclassify
     if score >= 2.0:
+        # Textured. If it's large, it's a book. Otherwise, card.
+        if area_ratio > 0.08:
+            return "book"
         return "card"
     elif score <= -2.0:
         # Large + smooth = likely a book; otherwise phone
@@ -136,6 +153,10 @@ def resolve_class_confusion(frame, class_name, coords):
         return "cell phone"
 
     # Not confident enough to override — keep YOLO's original label
+    # However, if YOLO said 'card' but it's large, it's almost certainly a book
+    if class_name == "card" and area_ratio > 0.08:
+        return "book"
+
     return class_name
 
 # Dynamic color map for drawing cached boxes
