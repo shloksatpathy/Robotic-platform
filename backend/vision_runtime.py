@@ -90,7 +90,7 @@ def run_speech_scan(duration=5):
 # e.g., "rtsp://192.168.144.108:554/stream1" or "http://192.168.144.108/video"
 CAMERA_SOURCE = "http://192.168.144.108/" 
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 
 if not cap.isOpened():
     raise RuntimeError(f"Failed to open camera stream at {CAMERA_SOURCE}")
