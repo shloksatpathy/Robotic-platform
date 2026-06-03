@@ -241,12 +241,13 @@ def detect(frame, selected_track_id=None):
             tracker="bytetrack.yaml",
             device=device,
             verbose=False,
-            conf=0.15
+            conf=0.15,
+            imgsz=672
         )
     except Exception as e:
         # Fallback to standard inference if tracker fails or is not found
         try:
-            results = model(frame, device=device, verbose=False)
+            results = model(frame, device=device, verbose=False, imgsz=672)
         except Exception as ex:
             print(f"Error during YOLO detection: {ex}")
             return frame, []
