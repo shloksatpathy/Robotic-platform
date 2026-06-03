@@ -4,17 +4,6 @@ photos (or any static face images).
 
 Usage:
     python enroll_from_photos.py <photos_dir>
-
-    Each image file should be named as the person's
-    identity:
-        photos/
-            john.jpg
-            alice.png
-            bob_smith.jpeg
-
-    The filename (without extension) becomes the
-    person's name in the database.
-
 Supported formats: .jpg .jpeg .png .bmp .webp
 """
 
