@@ -38,6 +38,16 @@ RECOGNITION_REFRESH_SEC = 5
 latest_jpeg = None
 lock = threading.Lock()
 
+# Stats for the dashboard
+stats_data = {
+    "fps": 0.0,
+    "status": "running",
+    "person_count": 0,
+    "object_count": 0,
+    "id_card_count": 0
+}
+last_frame_time = time.time()
+
 def set_speech_status(status):
     global speech_status
     speech_status = status
@@ -58,6 +68,7 @@ def video_processing_loop():
     global latest_jpeg, selected_track_id, current_detections
     global recognizer, track_identity_cache, last_seen_time
     global speech_status, speech_results, speech_thread
+    global stats_data, last_frame_time
 
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
@@ -73,12 +84,23 @@ def video_processing_loop():
             continue
 
         current_time = time.time()
+        fps = 1.0 / (current_time - last_frame_time) if current_time - last_frame_time > 0 else 0.0
+        last_frame_time = current_time
 
         # -----------------------------
         # YOLO + BYTE TRACK
         # -----------------------------
         annotated_frame, detections = detect(frame, selected_track_id=selected_track_id)
         current_detections = detections
+
+        person_count = sum(1 for d in detections if d["class"] == "person")
+        object_count = len(detections) - person_count
+        id_card_count = sum(1 for d in detections if d["class"] == "id_card")
+
+        stats_data["fps"] = fps
+        stats_data["person_count"] = person_count
+        stats_data["object_count"] = object_count
+        stats_data["id_card_count"] = id_card_count
 
         # -----------------------------
         # FACE RECOGNITION & GREETINGS
@@ -259,6 +281,11 @@ def api_state():
         "selected_track_id": selected_track_id,
         "speech_status": speech_status
     })
+
+@app.route('/stats', methods=['GET'])
+def get_stats():
+    """Returns YOLO statistics for the frontend AI panel."""
+    return jsonify(stats_data)
 
 if __name__ == '__main__':
     # Start the OpenCV camera processing thread
