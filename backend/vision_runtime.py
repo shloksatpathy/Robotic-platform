@@ -6,6 +6,7 @@ import sys
 import os
 import threading
 import queue
+import subprocess
 
 # Add speech recognition folder to system path so we can import from it
 sys.path.append(os.path.join(os.path.dirname(__file__), "speech_recognition"))
@@ -121,9 +122,11 @@ def tts_worker():
         try:
             # Use synchronous subprocess.run to block until speaking finishes
             subprocess.run([
-                "powershell", "-Command",
-                f"Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('Hello {name}');"
-            ], creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000))
+            #     "powershell", "-Command",
+            #     f"Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('Hello {name}');"
+                  f'echo"{text}"| piper --model en-US-lessac-medium.onnx --output_raw | aplay -r 22050 -f S16_LE pt raw''
+                  shell = True
+             ], creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000))
         except Exception as tts_e:
             print(f"[ERROR] TTS failed: {tts_e}")
         greeting_queue.task_done()
