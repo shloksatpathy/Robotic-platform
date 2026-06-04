@@ -119,6 +119,10 @@ def tts_worker():
         if name is None:
             break
         print(f"[GREETING] Hello, {name}")
+        """
+        For speech on windown uncomment the powershell part and comment the echo part and 
+        vice versa for arm ubuntu (jetson nano) 
+        """
         try:
             # Use synchronous subprocess.run to block until speaking finishes
             subprocess.run([
