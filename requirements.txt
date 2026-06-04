@@ -9,3 +9,4 @@ sounddevice
 scikit-learn
 flask
 flask-cors
+piper-tts

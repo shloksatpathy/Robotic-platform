@@ -14,6 +14,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "speech_recognition"))
 from detector import detect
 from face.recognise import FaceRecognizer
 from speech_runtime import scan_room
+from tts_engine import speak_async
 
 app = Flask(__name__)
 CORS(app)
@@ -152,16 +153,7 @@ def video_processing_loop():
             last_seen = last_seen_time.get(name, 0)
             if current_time - last_seen > 5:  # 5 seconds cooldown
                 print(f"[GREETING] Hello, {name}")
-                try:
-                    if os.name == 'nt':
-                        subprocess.Popen([
-                            "powershell", "-Command",
-                            f"Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('Hello {name}');"
-                        ], creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000))
-                    else:
-                        subprocess.Popen(["espeak", f"Hello {name}"])
-                except Exception as tts_e:
-                    print(f"[ERROR] TTS failed: {tts_e}")
+                speak_async(f"Hello {name}")
             
             # Update last seen time while they remain in frame
             last_seen_time[name] = current_time

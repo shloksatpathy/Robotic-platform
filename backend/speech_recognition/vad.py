@@ -5,9 +5,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model, utils = torch.hub.load(
     repo_or_dir='snakers4/silero-vad',
     model='silero_vad',
-    trust_repo=True
+    trust_repo=True,
+    onnx=True
 )
-model = model.to(device)
 
 (get_speech_timestamps,
  save_audio,
@@ -18,7 +18,7 @@ model = model.to(device)
 
 def detect_speech(audio, sr=16000):
 
-    audio_tensor = torch.tensor(audio).to(device)
+    audio_tensor = torch.tensor(audio)
 
     timestamps = get_speech_timestamps(
         audio_tensor,
