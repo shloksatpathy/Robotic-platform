@@ -10,3 +10,7 @@ scikit-learn
 flask
 flask-cors
 piper-tts
+faster-whisper
+openwakeword
+SpeechRecognition
+pyaudio
