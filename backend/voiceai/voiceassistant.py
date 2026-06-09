@@ -21,8 +21,7 @@ logger = logging.getLogger("VoiceAssistant")
 
 # ---------------------------------------------------------
 # NOTE ON WAKE WORD:
-# You requested "hey rover", but openWakeWord does not have
-# a built-in model for that phrase. To use "hey rover",
+#  To use "hey rover",
 # you will need to generate a custom .onnx model (e.g., via 
 # https://huggingface.co/spaces/davidscripka/openWakeWord)
 # and load it by passing the path: wakeword_models=["path/to/hey_rover.onnx"]
