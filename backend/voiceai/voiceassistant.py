@@ -7,6 +7,17 @@ import speech_recognition as sr
 import subprocess
 from ollama import chat
 import os
+import logging
+import sys
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger("VoiceAssistant")
 
 # ---------------------------------------------------------
 # NOTE ON WAKE WORD:
@@ -20,12 +31,12 @@ import os
 # ensure the pipeline works out-of-the-box.
 # ---------------------------------------------------------
 
-print("Initializing Wake Word model...")
+logger.info("Initializing Wake Word model...")
 download_models()
 # Initialize OpenWakeWord
 oww_model = Model(wakeword_models=["hey_jarvis"], inference_framework="onnx")
 
-print("Initializing Faster-Whisper model...")
+logger.info("Initializing Faster-Whisper model...")
 # Initialize Faster-Whisper (downloads the 'base.en' model on first run)
 whisper_model = WhisperModel("base.en", device="cpu", compute_type="int8")
 
@@ -41,7 +52,7 @@ audio = pyaudio.PyAudio()
 
 def listen_for_wakeword():
     stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
-    print("\nListening for wake word 'hey jarvis'...")
+    logger.info("Listening for wake word 'hey jarvis'...")
     try:
         while True:
             data = stream.read(CHUNK, exception_on_overflow=False)
@@ -53,7 +64,7 @@ def listen_for_wakeword():
             # Check if any wakeword passed the threshold
             for wakeword, score in prediction.items():
                 if score > 0.5:
-                    print(f"\nWake word detected! Score: {score}")
+                    logger.info(f"Wake word detected! Score: {score}")
                     return
     finally:
         stream.stop_stream()
@@ -61,9 +72,9 @@ def listen_for_wakeword():
 
 def record_and_transcribe():
     with sr.Microphone(sample_rate=16000) as source:
-        print("Adjusting for ambient noise... (1 sec)")
+        logger.info("Adjusting for ambient noise... (1 sec)")
         recognizer.adjust_for_ambient_noise(source, duration=1)
-        print("Speak now!")
+        logger.info("Speak now!")
         
         # Audio cue acknowledging the wake word
         subprocess.run([
@@ -80,11 +91,11 @@ def record_and_transcribe():
             with open(temp_file, "wb") as f:
                 f.write(audio_data.get_wav_data())
             
-            print("Transcribing...")
+            logger.info("Transcribing...")
             segments, info = whisper_model.transcribe(temp_file, beam_size=5)
             transcription = "".join([segment.text for segment in segments])
             
-            print("You:", transcription)
+            logger.info(f"You: {transcription}")
             
             # Clean up temp file
             if os.path.exists(temp_file):
@@ -92,10 +103,10 @@ def record_and_transcribe():
                 
             return transcription
         except sr.WaitTimeoutError:
-            print("No speech detected.")
+            logger.warning("No speech detected.")
             return None
         except Exception as e:
-            print("Error recording/transcribing:", e)
+            logger.error(f"Error recording/transcribing: {e}")
             return None
 
 def main():
@@ -104,14 +115,14 @@ def main():
         prompt = record_and_transcribe()
         
         if prompt and prompt.strip():
-            print("Thinking...")
+            logger.info("Thinking...")
             # Send to Ollama
             response = chat(
                 model='qwen2.5:3B-instruct',
                 messages=[{'role': 'user', 'content': prompt}]
             )
             reply = response['message']['content']
-            print("Assistant:", reply)
+            logger.info(f"Assistant: {reply}")
             
             safe_reply = reply.replace("'", "''").replace("\n", " ").replace("\r", "")
             subprocess.run([
